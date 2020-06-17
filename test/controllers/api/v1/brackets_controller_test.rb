@@ -9,7 +9,7 @@ class Api::V1::BracketsControllerTest < ActionDispatch::IntegrationTest
     get api_v1_brackets_index_url
     assert_response :success
     brackets = json_response["brackets"]
-    assert_equal true, brackets.is_a?(Array)
+    assert_equal true, brackets.is_a?(Array), "json_response = %s" % json_response
     # Tests reuse the same DB, so this could be 1, 2, 3, N.
     assert_equal false, brackets.empty?
   end
@@ -17,7 +17,7 @@ class Api::V1::BracketsControllerTest < ActionDispatch::IntegrationTest
   test "should get show" do
     get api_v1_brackets_show_url(@bracket)
     assert_response :success
-    assert_equal @bracket.name, json_response["name"]
+    assert_equal @bracket.name, json_response["name"], "json_response = %s" % json_response
   end
 
   private
