@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
-  get 'homepage/index'
-  # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+  root 'homepage#index'
+  # Map everythign else to the homepage EXCEPT anything in /api/
+  get '/*path' => 'homepage#index', constraints: -> (req) { !(req.fullpath =~ /^\/api\/.*/) }
 end

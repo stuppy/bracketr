@@ -1,9 +1,13 @@
-require 'test_helper'
+require "test_helper"
 
 class HomepageControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
-    get homepage_index_url
+  test "should get index from root url" do
+    get root_url
     assert_response :success
   end
 
+  test "should get index from any url" do
+    get "/anywhere"
+    assert_response :success
+  end
 end
