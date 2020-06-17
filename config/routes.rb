@@ -3,6 +3,10 @@ Rails.application.routes.draw do
     namespace :v1 do
       get 'brackets', to: 'brackets#index', as: "brackets_index"
       get 'brackets/:id', to: 'brackets#show', as: "brackets_show"
+
+      get 'song_bracket_setup/search'
+      get 'song_bracket_setup/select'
+      post 'song_bracket_setup/submit'
     end
   end
   root 'homepage#index'
