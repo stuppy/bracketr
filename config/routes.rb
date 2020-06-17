@@ -5,7 +5,7 @@ Rails.application.routes.draw do
       get 'brackets/:id', to: 'brackets#show', as: "brackets_show"
 
       get 'song_bracket_setup/search'
-      get 'song_bracket_setup/select'
+      get 'song_bracket_setup/submit' if Rails.env.development?
       post 'song_bracket_setup/submit'
     end
   end

@@ -2,8 +2,9 @@ class Api::V1::BracketsController < ApplicationController
   def index
     brackets = Bracket.all.order(created_at: :desc)
     response = IndexResponse.new
-    response.add_brackets(
-      brackets.to_a.map { |bracket| IndexResponse::Bracket.new(bracket.name, bracket.description) })
+    response.brackets.concat(
+      brackets.to_a.map { |bracket| IndexResponse::Bracket.new(bracket.name, bracket.description) }
+    )
     render json: response
   end
 
@@ -22,16 +23,10 @@ class Api::V1::BracketsController < ApplicationController
   end
 
   class IndexResponse
+    attr_reader :brackets
+
     def initialize
       @brackets = []
-    end
-
-    def add_bracket(bracket)
-      @brackets.push(bracket)
-    end
-
-    def add_brackets(brackets)
-      @brackets.concat(brackets)
     end
 
     class Bracket
