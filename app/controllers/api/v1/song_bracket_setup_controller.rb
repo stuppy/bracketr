@@ -24,7 +24,12 @@ class Api::V1::SongBracketSetupController < ApplicationController
     artists = RSpotify::Artist.search(query, market: MARKET)
     response = SearchResponse.new
     response.results.concat(
-      artists.to_a.map { |artist| SearchResponse::Result.new(artist.name, artist.id) }
+      artists.to_a.map { |artist|
+        result = SearchResponse::Result.new(artist.name, artist.id)
+        first_image = artist.images.first
+        result.image = Image.new(first_image) if first_image
+        result
+      }
     )
     render json: response
   end
@@ -64,11 +69,12 @@ class Api::V1::SongBracketSetupController < ApplicationController
     artist_id = ref
 
     response = SubmitResponse.new
+    response.page = next_page
 
     to_page_album = ->(album) {
       pa = SubmitResponse::Album.new(album.name, album.id)
       first_image = album.images.first
-      pa.artwork = SubmitResponse::Image.new(first_image) if first_image
+      pa.artwork = Image.new(first_image) if first_image
       # Assume selected if... selected.
       pa.selected = true
       return pa
@@ -79,6 +85,10 @@ class Api::V1::SongBracketSetupController < ApplicationController
     when SubmitPage::ALBUMS
       album_ids = get_album_ids(artist_id, MARKET)
       albums = get_full_albums(album_ids)
+      # Sort by the popularity DESC.
+      albums.sort! { |a, b| b.popularity <=> a.popularity }
+      # Then make unique by the name; the first one is kept (the more popular).
+      albums.uniq! { |a| a.name }
       response.albums.concat(albums.map(&to_page_album))
     when SubmitPage::DONE
       track_ids = selected_refs
@@ -123,6 +133,16 @@ class Api::V1::SongBracketSetupController < ApplicationController
 
   private
 
+  class Image
+    attr_reader :url, :height, :width
+
+    def initialize(obj = {})
+      @url = obj["url"]
+      @height = obj["height"]
+      @width = obj["width"]
+    end
+  end
+
   class SearchResponse
     attr_reader :results
 
@@ -131,6 +151,8 @@ class Api::V1::SongBracketSetupController < ApplicationController
     end
 
     class Result
+      attr_accessor :image
+
       def initialize(name, ref)
         @name = name
         @ref = ref
@@ -179,16 +201,6 @@ class Api::V1::SongBracketSetupController < ApplicationController
         @name = name
         @ref = ref
         @tracks = Array.new
-      end
-    end
-
-    class Image
-      attr_reader :url, :height, :width
-
-      def initialize(obj = {})
-        @url = obj["url"]
-        @height = obj["height"]
-        @width = obj["width"]
       end
     end
 
