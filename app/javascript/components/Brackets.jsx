@@ -25,13 +25,15 @@ class Brackets extends React.Component {
   render() {
     const { brackets } = this.state;
     const allBrackets = brackets.map((bracket, index) => (
-      <div key={index} className="col-md-6 col-lg-4">
+      <div key={index} className="col-md-4 col-lg-2">
         <div className="card mb-4">
-          <img
-            src={bracket.image}
-            className="card-img-top"
-            alt={`${bracket.name} image`}
-          />
+          {bracket.image && (
+            <img
+              src={bracket.image.url}
+              className="card-img-top"
+              alt={`${bracket.name} image`}
+            />
+          )}
           <div className="card-body">
             <h5 className="card-title">{bracket.name}</h5>
             <Link to={`/bracket/${bracket.id}`} className="btn custom-button">

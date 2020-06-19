@@ -14,7 +14,7 @@ class NewBracket extends React.Component {
     this.onAlbumsSelect = this.onAlbumsSelect.bind(this);
     this.onArtistSelect = this.onArtistSelect.bind(this);
     this.onSearchSubmit = this.onSearchSubmit.bind(this);
-    this.onSelectSubmit = this.onSelectSubmit.bind(this);
+    this.onTracksSelect = this.onTracksSelect.bind(this);
     this.onTrackCheckChange = this.onTrackCheckChange.bind(this);
   }
 
@@ -103,19 +103,18 @@ class NewBracket extends React.Component {
       .catch(error => console.log(error.message));
   }
 
-  onSelectSubmit(event) {
+  onTracksSelect(event) {
     event.preventDefault();
-    const url = "/api/v1/song_bracket_setup/search";
-    const { query } = this.state;
 
-    if (query.length == 0) {
-      return;
-    }
+    const { albums, token } = this.state;
 
+    const selectedRefs = albums.map(a => a.tracks.filter(t => t.selected).map(t => t.ref)).flat(1 /* array of arrays */);
+
+    const url = "/api/v1/song_bracket_setup/submit";
     const body = {
-      query
+      refs: selectedRefs,
+      token
     };
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     fetch(url, {
       method: "POST",
@@ -131,8 +130,8 @@ class NewBracket extends React.Component {
         }
         throw new Error("Network response was not ok.");
       })
-      .then(response => this.props.history.push(`/recipe/${response.id}`))
-      .catch(error => console.log(error.message));
+      .then(response => this.props.history.push("/bracket/" + response.bracket_id))
+      .catch(error => console.error("Could not save bracket!", error));
   }
 
   renderSearch() {
@@ -230,10 +229,17 @@ class NewBracket extends React.Component {
 
   renderAlbumTracks() {
     const { albums } = this.state;
+    const numChecked = albums.map(a => a.tracks.filter(t => t.selected).length).reduce((a, b) => a + b, 0);
+    const errorMessage = `Must select 4, 8, 16, 32, 64 or 128 tracks; currently at ${numChecked}`;
+    let ready = false;
+    if (numChecked >= 4 && numChecked <= 128) {
+      const log2 = Math.log2(numChecked);
+      ready = Number.isInteger(log2);
+    }
     return (
       <>
         <h1 className="font-weight-normal mb-5">Select tracks to include in the bracket!</h1>
-        <form onSubmit={this.onAlbumsSelect}>
+        <form onSubmit={this.onTracksSelect}>
           {albums && albums.map((album) => (
             <div key={album.ref}>
               {album.artwork && (<img src={album.artwork.url} height={50} width={50} />)}
@@ -256,7 +262,10 @@ class NewBracket extends React.Component {
               )}
             </div>
           ))}
-          <button type="submit" className="btn custom-button mt-3">Select</button>
+          { errorMessage && (
+            <div>{errorMessage}</div>
+          )}
+          <button type="submit" disabled={!ready} className="btn custom-button mt-3">Select</button>
         </form>
       </>
     );

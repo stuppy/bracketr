@@ -4,6 +4,7 @@ class Api::V1::SongBracketSetupController < ApplicationController
   # TODO(stuppy): Get the market from the user, if known.
   MARKET = "US"
   BRACKET_SIZES = [4, 8, 16, 32, 64, 128]
+  DEFAULT_BRACKET_SIZE = 64
 
   def initialize
     RSpotify.authenticate(ENV["SPOTIFY_CLIENT_ID"], ENV["SPOTIFY_CLIENT_SECRET"]) unless Rails.env.test?
@@ -46,7 +47,7 @@ class Api::V1::SongBracketSetupController < ApplicationController
       next_page = SubmitPage::ALBUMS
     else
       raise ActionController::BadRequest.new("refs is required") if refs.blank?
-      selected_refs = refs.split(",").uniq
+      selected_refs = (refs.is_a?(Array) ? refs : refs.split(",")).uniq
       submit_token = SubmitToken.from_token(token)
       ref = submit_token.ref
       case submit_token.page
@@ -80,7 +81,6 @@ class Api::V1::SongBracketSetupController < ApplicationController
       return pa
     }
 
-    puts next_page
     case next_page
     when SubmitPage::ALBUMS
       album_ids = get_album_ids(artist_id, MARKET)
@@ -91,28 +91,49 @@ class Api::V1::SongBracketSetupController < ApplicationController
       albums.uniq! { |a| a.name }
       response.albums.concat(albums.map(&to_page_album))
     when SubmitPage::DONE
+      artist = RSpotify::Artist.find(ref)
       track_ids = selected_refs
       num_tracks = track_ids.length
-      log2 = Math.log2(num_tracks)
-      log2int = log2.to_i
-      raise ActionController::BadRequest.new("refs must have a power of 2") if log2 != log2int
-      raise ActionController::BadRequest.new("refs must have # entries: %s" % BRACKET_SIZES) unless BRACKET_SIZES.include?(log2int)
-      tracks = get_tracks(track_ids, MARKET)
-      albums = tracks.map { |track| track.album }.uniq { |album| album.id }
-      # TODO(stuppy): Save the Bracket!
+      raise ActionController::BadRequest.new(
+        "refs must have # entries: [%s]; got %d" % [BRACKET_SIZES.join(", "), num_tracks]
+      ) unless BRACKET_SIZES.include?(num_tracks)
+      tracks = get_tracks(track_ids)
+      bracket = Bracket.new(name: "Top %d %s tracks!" % [num_tracks, artist.name])
+      data = Bracket::BData.new
+      data.artist = artist
+      data.count = num_tracks
+      # Shuffle the quadrants/seeds for now.
+      data.items = tracks.shuffle
+      data.type = Bracket::BData::TYPE_SPOTIFY_TRACKS
+      bracket.data = data
+      bracket.save
+      response.bracket_id = bracket.id
     when SubmitPage::TRACKS
       album_ids = selected_refs
       albums = get_full_albums(album_ids)
-      tracks = albums.map { |album| album.tracks }.flatten
-      top_track_ids_map = get_top_track_ids(artist_id, MARKET).map { |id| [id, true] }.to_h
+      has_artist = ->(track) { track.artists.any? { |artist| artist.id === artist_id } }
+      tracks = albums.map { |album| album.tracks }.flatten.filter(&has_artist)
+      # top_track_ids_map = get_top_track_ids(artist_id, MARKET).map { |id| [id, true] }.to_h
+      # 2 ^ (log2(num tracks) truncated)
+      top_count = tracks.any? ? [2 ** Math.log2(tracks.length).floor, DEFAULT_BRACKET_SIZE].min : 0
+      track_ids = tracks.map { |track| track.id }
+      # The existing tracks from albums do not have things like popularity, so load manually.
+      # Fingers crossed that this doesn't trigger a TooManyRequests error.
+      top_track_ids_map = get_tracks(track_ids)
+        .max(top_count) { |track| track.popularity || 0 }
+        .map { |track| [track.id, true] }
+        .to_h
       response.albums.concat(
         albums.map { |album|
           pa = to_page_album.call(album)
+          album_tracks = album.tracks.filter(&has_artist)
+          pa.num_discs = album_tracks.map { |track| track.disc_number }.max
           pa.tracks.concat(
-            album.tracks.map { |track|
+            album_tracks.map { |track|
               pt = SubmitResponse::Track.new(track.name, track.id)
               pt.selected = !!top_track_ids_map[track.id]
               pt.track_number = track.track_number
+              pt.disc_number = track.disc_number
               pt
             }
           )
@@ -194,7 +215,7 @@ class Api::V1::SongBracketSetupController < ApplicationController
     end
 
     class Album
-      attr_accessor :artwork, :selected
+      attr_accessor :artwork, :selected, :num_discs
       attr_reader :name, :ref, :tracks
 
       def initialize(name, ref)
@@ -205,7 +226,7 @@ class Api::V1::SongBracketSetupController < ApplicationController
     end
 
     class Track
-      attr_accessor :selected, :track_number
+      attr_accessor :selected, :track_number, :disc_number
       attr_reader :name, :ref
 
       def initialize(name, ref)
@@ -220,7 +241,7 @@ class Api::V1::SongBracketSetupController < ApplicationController
   # SO, fetch the album ids directly, then lookup with the fuller-album lookup which includes
   # Tracks, so subsequent #tracks calls do NOT make the HTTP call (leads to too many calls).
   def get_album_ids(artist_id, market, limit: 50, offset: 0)
-    response = RSpotify.get "artists/#{artist_id}/albums?market=#{market}&limit=#{limit}&offset=#{offset}"
+    response = RSpotify.get "artists/#{artist_id}/albums?country=#{market}&limit=#{limit}&offset=#{offset}"
     return response if RSpotify.raw_response
     return (response["items"] || []).map { |album| album["id"] }
   end
@@ -233,21 +254,11 @@ class Api::V1::SongBracketSetupController < ApplicationController
 
   def get_full_albums(album_ids)
     chunks = album_ids.each_slice(20).to_a
-    all = chunks.map { |chunk|
-      response = RSpotify.get "albums?ids=#{chunk.join(",")}"
-      return response if RSpotify.raw_response
-      return response["albums"].map { |album| RSpotify::Album.new(album) }
-    }
-    puts all
-    return all.flatten
+    return chunks.map { |chunk| RSpotify::Album.find(chunk) }.flatten
   end
 
-  def get_tracks(track_ids, market)
+  def get_tracks(track_ids)
     chunks = track_ids.each_slice(50).to_a
-    all = chunks.map { |chunk|
-      return RSpotify::Track.find(chunk, market: market)
-    }
-    puts all
-    return all.flatten
+    return chunks.map { |chunk| RSpotify::Track.find(chunk) }.flatten
   end
 end

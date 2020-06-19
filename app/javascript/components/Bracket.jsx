@@ -33,11 +33,13 @@ class Bracket extends React.Component {
     return (
       <div className="">
         <div className="hero position-relative d-flex align-items-center justify-content-center">
-          <img
-            src={bracket.image}
-            alt={`${bracket.name} image`}
-            className="img-fluid position-absolute"
-          />
+          {bracket.image && (
+            <img
+              src={bracket.image.url}
+              alt={`${bracket.name} image`}
+              className="img-fluid position-absolute"
+            />
+          )}
           <div className="overlay bg-dark position-absolute" />
           <h1 className="display-4 position-relative text-white">
             {bracket.name}
