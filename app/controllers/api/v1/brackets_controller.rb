@@ -74,7 +74,7 @@ class Api::V1::BracketsController < ApplicationController
     end
 
     class Team
-      attr_accessor :image
+      attr_accessor :image, :embed_uri
 
       def initialize(name, seed)
         @name = name
@@ -94,6 +94,7 @@ class Api::V1::BracketsController < ApplicationController
     team = ShowResponse::Team.new(item["name"], seed)
     image = (item.dig "album", "images").first
     team.image = Image.new(image) if image
+    team.embed_uri = "https://embed.spotify.com/?uri=#{item["uri"]}"
     team
   end
 

@@ -27,6 +27,12 @@ class Bracket extends React.Component {
       .catch(() => this.props.history.push("/brackets"));
   }
 
+  renderTeam(team) {
+    return (
+      <iframe src={team.embed_uri} allowtransparency="true" allow="encrypted-media" width="250" height="80" />
+    )
+  }
+
   render() {
     const { bracket } = this.state;
 
@@ -46,18 +52,46 @@ class Bracket extends React.Component {
           </h1>
         </div>
         <div className="container py-5">
-          <div className="row">
-            <div className="col-sm-12 col-lg-3">
-              <ul className="list-group">
-                <h5 className="mb-2">Ingredients</h5>
-                None
-              </ul>
+          {bracket.nw && bracket.nw.map((ignored, idx) => (
+            <div className="row" key={"n-" + idx}>
+              <div className="col-sm-6 col-lg-6">
+                <h5 className="mb-1 team1">
+                  {this.renderTeam(bracket.nw[idx].team1)}
+                </h5>
+                <h5 className="mb-4 team2">
+                  {this.renderTeam(bracket.nw[idx].team2)}
+                </h5>
+              </div>
+              <div className="col-sm-6 col-lg-6">
+                <h5 className="mb-1 team1">
+                  {this.renderTeam(bracket.ne[idx].team1)}
+                </h5>
+                <h5 className="mb-4 team2">
+                  {this.renderTeam(bracket.ne[idx].team2)}
+                </h5>
+              </div>
             </div>
-            <div className="col-sm-12 col-lg-7">
-              <h5 className="mb-2">Preparation Instructions</h5>
-              <div>None</div>
+          ))}
+          {bracket.sw && bracket.sw.map((ignored, idx) => (
+            <div className="row" key={"n-" + idx}>
+              <div className="col-sm-6 col-lg-6">
+                <h5 className="mb-1 team1">
+                  {this.renderTeam(bracket.sw[idx].team1)}
+                </h5>
+                <h5 className="mb-4 team2">
+                  {this.renderTeam(bracket.sw[idx].team2)}
+                </h5>
+              </div>
+              <div className="col-sm-6 col-lg-6">
+                <h5 className="mb-1 team1">
+                  {this.renderTeam(bracket.se[idx].team1)}
+                </h5>
+                <h5 className="mb-4 team2">
+                  {this.renderTeam(bracket.se[idx].team2)}
+                </h5>
+              </div>
             </div>
-          </div>
+          ))}
           <Link to="/brackets" className="btn btn-link">
             Back to brackets
           </Link>
