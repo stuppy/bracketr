@@ -1,6 +1,6 @@
-# https://dev.to/mweibel/deploying-next-js-on-aws-elasticbeanstalk-ab4
-
 #!/bin/bash
+
+# https://dev.to/mweibel/deploying-next-js-on-aws-elasticbeanstalk-ab4
 
 # need to install node first to be able to install yarn (as at prebuild no node is present yet)
 echo "download/setup nodejs..."
