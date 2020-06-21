@@ -80,6 +80,4 @@ test:
 #
 production:
   <<: *default
-  database: bracketr_production
-  username: bracketr
-  password: <%= ENV['BRACKETR_DATABASE_PASSWORD'] %>
+  url: <%= ENV['DATABASE_URL'] %>
