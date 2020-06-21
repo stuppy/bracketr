@@ -10,7 +10,6 @@ Things you may want to cover:
 * System dependencies
 
 Uses yarn to config/install/build React.
-@see https://davidcalhoun.me/writing/using-yarn-on-elastic-beanstalk
 
 * Configuration
 
