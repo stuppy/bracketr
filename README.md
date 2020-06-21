@@ -9,8 +9,8 @@ Things you may want to cover:
 
 * System dependencies
 
-Uses yarn to config/install/build React, so we disable npm in the eb-extensions.
-@see https://www.trytape.com/2019/10/28/using-yarn-on-elastic-beanstalk/
+Uses yarn to config/install/build React.
+@see https://davidcalhoun.me/writing/using-yarn-on-elastic-beanstalk
 
 * Configuration
 
