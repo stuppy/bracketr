@@ -7,7 +7,7 @@ export default () => (
       <div className="container secondary-color">
         <h1 className="display-4">Bracket.r</h1>
         <p className="lead">
-          So you like brackets?
+          So you like <Link to="/brackets">brackets</Link>?
         </p>
         <hr className="my-4" />
         <Link
