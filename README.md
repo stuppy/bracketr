@@ -9,6 +9,8 @@ Things you may want to cover:
 
 * System dependencies
 
+Uses yarn to config/install/build React, so we disable npm in the eb-extensions.
+
 * Configuration
 
 * Database creation
